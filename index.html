@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>好姿食堂收銀系統</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #F1DD95; }
+    header { background: #888; color: white; text-align: center; padding: 15px; font-size: 20px; font-weight: bold; }
+    .container { padding: 15px; }
+    .tabs { display: flex; justify-content: center; gap: 10px; padding: 10px; background: #fffaf0; }
+    .tabs button { flex: 1; padding: 10px; font-size: 16px; border: none; border-radius: 6px; cursor: pointer; }
+    .active { background: #f7d86d; font-weight: bold; }
+    .menu { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 15px; }
+    button { background: #ccc; border: none; border-radius: 8px; padding: 10px; font-size: 16px; cursor: pointer; }
+    button:hover { background: #aaa; }
+    .card { background: white; border-radius: 10px; padding: 10px; margin: 8px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    h2 { margin-top: 20px; font-size: 18px; border-bottom: 2px solid #ccc; padding-bottom: 5px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background: #eee; }
+    .flex { display: flex; gap: 10px; flex-wrap: wrap; }
+    .hidden { display: none; }
+    .white-table { background-color: #ffffff; border: 1px solid #ccc; }
+    .white-table th { background-color: #f9f9f9; }
+  </style>
+</head>
+<body>
+  <header>好姿食堂收銀系統</header>
+
+  <div class="tabs">
+    <button id="frontTab" class="active" onclick="showPage('front')">前台系統</button>
+    <button id="backTab" onclick="showPage('back')">後台系統</button>
+  </div>
+
+  <div class="container">
+    <!-- 前台 -->
+    <div id="frontPage">
+      <h2>收銀系統</h2>
+      <div class="menu">
+        <button onclick="addItem('原味蛋餅',30)">原味蛋餅 $30</button>
+        <button onclick="addItem('火腿蛋餅',45)">火腿蛋餅 $45</button>
+        <button onclick="addItem('起司蛋餅',40)">起司蛋餅 $40</button>
+        <button onclick="addItem('玉米蛋餅',40)">玉米蛋餅 $40</button>
+        <button onclick="addItem('總匯蛋餅',60)">總匯蛋餅 $60</button>
+        <button onclick="addItem('蛋餅皮',20)">蛋餅皮 $20</button>
+        <button onclick="addItem('炸蛋蔥油餅',45)">炸蛋蔥油餅 $45</button>
+        <button onclick="addItem('大腸麵線(大)',55)">大腸麵線(大) $55</button>
+        <button onclick="addItem('大腸麵線(小)',45)">大腸麵線(小) $45</button>
+        <button onclick="addItem('清麵線(大)',45)">清麵線(大) $45</button>
+        <button onclick="addItem('清麵線(小)',35)">清麵線(小) $35</button>
+        <button onclick="addItem('紅茶',20)">紅茶 $20</button>
+        <button onclick="addItem('加10',10)">加 $10</button>
+        <button onclick="addItem('加20',20)">加 $20</button>
+        <button onclick="addItem('加30',30)">加 $30</button>
+        <button onclick="addItem('蛋',15)">蛋 $15</button>
+        <button onclick="addItem('環保餐具',-5)">環保餐具 -$5</button>
+      </div>
+
+      <h3>當前訂單</h3>
+      <div id="orderList"></div>
+      <div><b>總金額: $<span id="totalAmount">0</span></b></div>
+
+      <!-- 🔹 新增付款與找零功能 -->
+      <div style="margin-top:10px;">
+        <label>顧客付款金額: $<input type="number" id="payAmount" min="0" oninput="calcChange()"></label>
+      </div>
+      <div style="margin-top:5px;">
+        <b>應找零: $<span id="changeAmount">0</span></b>
+      </div>
+
+      <div class="flex">
+        <button onclick="removeSelectedItem()">刪除選取餐點</button>
+        <button onclick="saveOrder()">送出訂單</button>
+      </div>
+
+      <h3>今日銷售訂單</h3>
+      <div id="todayOrders"></div>
+      <div class="flex">
+        <button onclick="deleteSelectedOrders()">刪除選取訂單</button>
+      </div>
+    </div>
+
+    <!-- 後台 -->
+    <div id="backPage" class="hidden">
+      <h2>後台報表</h2>
+
+      <h3>今日品項統計</h3>
+      <table class="white-table">
+        <thead><tr><th>品項</th><th>數量</th><th>銷售額</th></tr></thead>
+        <tbody id="itemStats"></tbody>
+      </table>
+
+      <h3>營業額統計</h3>
+      <table class="white-table">
+        <thead><tr><th>類別</th><th>金額</th></tr></thead>
+        <tbody>
+          <tr><td>今日營業額</td><td>$<span id="todayRevenue">0</span></td></tr>
+          <tr><td>本週營業額</td><td>$<span id="weekRevenue">0</span></td></tr>
+          <tr><td>本月營業額</td><td>$<span id="monthRevenue">0</span></td></tr>
+        </tbody>
+      </table>
+
+      <h3>歷史訂單查詢</h3>
+      <input type="date" id="historyDate" onchange="renderHistoryByDate()">
+      <div id="historyOrders"></div>
+
+      <div class="flex">
+        <button onclick="exportCSV()">匯出CSV</button>
+        <button onclick="clearAllData()">清除所有紀錄</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+let currentOrder = {};
+let allData = JSON.parse(localStorage.getItem("allData")) || { orders: [], history: [], weekRevenue:0, monthRevenue:0 };
+let orderNumber = allData.orders.length + 1;
+
+function saveData(){ localStorage.setItem("allData", JSON.stringify(allData)); }
+
+function checkNewDay(){
+  let today = new Date().toISOString().split("T")[0];
+  let lastDay = localStorage.getItem("lastDay");
+
+  if(lastDay !== today){
+    if(allData.orders.length>0){
+      allData.history.push({ date:lastDay, orders:allData.orders });
+    }
+
+    let dailyTotal = calcTotalWithDiscount(allData.orders);
+    allData.weekRevenue = (lastDay ? allData.weekRevenue : 0) + dailyTotal;
+    allData.monthRevenue = (lastDay ? allData.monthRevenue : 0) + dailyTotal;
+
+    if(new Date().getDay()===1) allData.weekRevenue = 0;
+    if(new Date().getDate()===1) allData.monthRevenue = 0;
+
+    allData.orders = [];
+    orderNumber = 1; 
+    localStorage.setItem("lastDay", today);
+    saveData();
+  }
+}
+
+function addItem(name, price){
+  if(currentOrder[name]) currentOrder[name].qty++;
+  else currentOrder[name] = { price, qty:1 };
+  renderOrder();
+}
+
+function removeSelectedItem(){
+  let selected = document.querySelector("input[name='deleteItem']:checked");
+  if(selected){
+    delete currentOrder[selected.value];
+    renderOrder();
+  } else {
+    alert("請先選擇要刪除的餐點");
+  }
+}
+
+/* 🔹 已合併的新 saveOrder() */
+function saveOrder(){
+  if(Object.keys(currentOrder).length===0){ 
+    alert("請先新增餐點！"); 
+    return; 
+  }
+  let total=0, items=[];
+  for(let k in currentOrder){
+    let {price, qty}=currentOrder[k]; 
+    total+=price*qty;
+    items.push({ name:k, qty, price, subtotal:price*qty });
+  }
+  let order={ orderNumber:orderNumber++, items,total,time:new Date().toLocaleString() };
+  allData.orders.push(order); 
+  currentOrder={}; 
+  saveData(); 
+
+  // 🔹送出後自動歸零付款與找零
+  document.getElementById("payAmount").value = "";
+  document.getElementById("changeAmount").innerText = "0";
+
+  renderAll();
+}
+
+function clearAllData(){
+  if(confirm("⚠️ 確定要清除所有資料嗎？手癢嗎?此動作不可回復！")){
+    if(confirm("⚠️ 手癢嗎?不要亂按!!給我想清楚再刪")){
+      let password = prompt("請輸入管理員密碼以確認刪除：");
+      if(password === "0000"){   // ✅ 在這裡改密碼
+        allData={ orders:[], history:[], weekRevenue:0, monthRevenue:0 }; 
+        orderNumber=1; 
+        saveData(); 
+        renderAll();
+        alert("✅ 所有資料已清除");
+      } else if(password !== null) {
+        alert("❌ 密碼錯誤，資料未被清除！");
+      }
+    }
+  }
+}
+
+function exportCSV(){
+  let rows=[["日期","訂單編號","品項","數量","單價","小計","總金額"]];
+  [...allData.history,{date:"今日",orders:allData.orders}].forEach(d=>{
+    if(!d.date) return;
+    d.orders.forEach(o=>{
+      o.items.forEach(i=>{
+        let subtotal = (i.name==="環保餐具") ? -5 * i.qty : i.subtotal;
+        rows.push([d.date,o.orderNumber,i.name,i.qty,i.price,subtotal,o.total]);
+      });
+    });
+  });
+  let csv=rows.map(r=>r.join(",")).join("\n");
+  let blob=new Blob([csv],{type:"text/csv"});
+  let link=document.createElement("a");
+  link.href=URL.createObjectURL(blob); link.download="orders.csv"; link.click();
+}
+
+function renderOrder(){
+  let box=document.getElementById("orderList"); box.innerHTML="";
+  let total=0;
+  for(let k in currentOrder){
+    let {price,qty}=currentOrder[k], subtotal=price*qty; total+=subtotal;
+    let div=document.createElement("div"); div.className="card";
+    div.innerHTML=`<label><input type="radio" name="deleteItem" value="${k}"> ${k} x${qty} - $${subtotal}</label>`;
+    box.appendChild(div);
+  }
+  document.getElementById("totalAmount").innerText=total;
+  calcChange(); // 每次更新訂單時自動重算找零
+}
+
+function renderTodayOrders(){
+  let box=document.getElementById("todayOrders"); box.innerHTML="";
+  [...allData.orders].reverse().forEach(o=>{
+    let div=document.createElement("div"); div.className="card";
+    div.innerHTML=`<label><input type="checkbox" class="deleteOrder" value="${o.orderNumber}"> 
+      <b>訂單 #${o.orderNumber}</b> (${o.time})<br>
+      ${o.items.map(i=>`${i.name} x${i.qty}`).join(", ")}<br>總金額: $${o.total}</label>`;
+    box.appendChild(div);
+  });
+}
+
+function deleteSelectedOrders(){
+  let checked = document.querySelectorAll(".deleteOrder:checked");
+  if(checked.length===0){ alert("請先選擇要刪除的訂單"); return; }
+  checked.forEach(c=>{
+    let orderNum = parseInt(c.value);
+    allData.orders = allData.orders.filter(o=>o.orderNumber!==orderNum);
+  });
+  saveData(); renderAll();
+}
+
+function renderItemStats(){
+  let stats={};
+  allData.orders.forEach(o=>{ 
+    o.items.forEach(i=>{
+      if(!stats[i.name]) stats[i.name]={qty:0,total:0};
+      if(i.name==="環保餐具"){
+        stats[i.name].qty += i.qty;
+        stats[i.name].total += -5 * i.qty;
+      } else {
+        stats[i.name].qty += i.qty;
+        stats[i.name].total += i.subtotal;
+      }
+    });
+  });
+
+  let order=[
+    "大腸麵線(大)","大腸麵線(小)","清麵線(大)","清麵線(小)",
+    "原味蛋餅","起司蛋餅","玉米蛋餅","火腿蛋餅","總匯蛋餅","蛋餅皮",
+    "炸蛋蔥油餅","紅茶","加10","加20","加30","蛋","環保餐具"
+  ];
+  
+  let tbody=document.getElementById("itemStats"); 
+  tbody.innerHTML="";
+  let totalQty=0, totalSales=0;
+
+  order.forEach(k=>{
+    let qty=stats[k]?.qty||0;
+    let total=stats[k]?.total||0;
+    totalQty+=qty; 
+    totalSales+=total;
+    let tr=document.createElement("tr");
+    tr.innerHTML=`<td>${k}</td><td>${qty}</td><td>$${total}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  let tr=document.createElement("tr");
+  tr.innerHTML=`<td><b>合計</b></td><td><b>${totalQty}</b></td><td><b>$${totalSales}</b></td>`;
+  tbody.appendChild(tr);
+}
+
+function calcTotalWithDiscount(orders){
+  let sum=0;
+  orders.forEach(o=>{
+    o.items.forEach(i=>{
+      if(i.name==="環保餐具"){
+        sum += -5 * i.qty; 
+      } else {
+        sum += i.subtotal;
+      }
+    });
+  });
+  return sum;
+}
+
+function renderRevenue(){
+  let today = calcTotalWithDiscount(allData.orders);
+  document.getElementById("todayRevenue").innerText = today;
+
+  let weekOrders = allData.history.filter(h=>isSameWeek(h.date)).flatMap(h=>h.orders);
+  let monthOrders = allData.history.filter(h=>isSameMonth(h.date)).flatMap(h=>h.orders);
+
+  let weekTotal = calcTotalWithDiscount(weekOrders.concat(allData.orders));
+  let monthTotal = calcTotalWithDiscount(monthOrders.concat(allData.orders));
+
+  document.getElementById("weekRevenue").innerText = weekTotal;
+  document.getElementById("monthRevenue").innerText = monthTotal;
+}
+
+function isSameWeek(dateStr){
+  let d = new Date(dateStr);
+  let today = new Date();
+  let weekStart = new Date(today.setDate(today.getDate() - today.getDay() + 1));
+  let weekEnd = new Date(today.setDate(weekStart.getDate() + 6));
+  return d >= weekStart && d <= weekEnd;
+}
+
+function isSameMonth(dateStr){
+  let d = new Date(dateStr);
+  let today = new Date();
+  return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+}
+
+function renderHistoryByDate(){
+  let date=document.getElementById("historyDate").value;
+  let box=document.getElementById("historyOrders"); box.innerHTML="";
+  let d=allData.history.find(h=>h.date===date);
+  if(d){
+    d.orders.forEach(o=>{
+      let div=document.createElement("div"); div.className="card";
+      div.innerHTML=`訂單 #${o.orderNumber} (${o.time})<br>
+        ${o.items.map(i=>`${i.name} x${i.qty}`).join(", ")}<br>總金額: $${o.total}`;
+      box.appendChild(div);
+    });
+  } else {
+    box.innerHTML="<i>此日期無訂單紀錄</i>";
+  }
+}
+
+function renderAll(){ renderOrder(); renderTodayOrders(); renderItemStats(); renderRevenue(); }
+
+function showPage(p){
+  document.getElementById("frontPage").classList.add("hidden");
+  document.getElementById("backPage").classList.add("hidden");
+  document.getElementById("frontTab").classList.remove("active");
+  document.getElementById("backTab").classList.remove("active");
+  if(p==="front"){ 
+    document.getElementById("frontPage").classList.remove("hidden"); 
+    document.getElementById("frontTab").classList.add("active"); 
+  } else { 
+    document.getElementById("backPage").classList.remove("hidden"); 
+    document.getElementById("backTab").classList.add("active"); 
+  }
+}
+
+/* 🔹 計算找零 */
+function calcChange(){
+  let total = parseInt(document.getElementById("totalAmount").innerText) || 0;
+  let pay = parseInt(document.getElementById("payAmount").value) || 0;
+  let change = pay - total;
+  document.getElementById("changeAmount").innerText = change >= 0 ? change : 0;
+}
+
+checkNewDay(); renderAll();
+</script>
+</body>
+</html>
